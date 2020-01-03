@@ -42,8 +42,7 @@ object SomeService {
     }
   }
 
-  def create[F[_]](implicit F: Execute[F],
-                   ec: ExecutionContext): SomeService[F] =
+  def create[F[_]](implicit F: Execute[F]): SomeService[F] =
     someService.mapK(functionK.apply(x => F.deferFuture(x)))
 }
 
