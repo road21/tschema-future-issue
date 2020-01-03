@@ -55,7 +55,7 @@ class SomeModule[F[_]: Monad: RoutedPlus, G[_]: LiftHttp[F, *[_]]: Monad](
 
     def foo = keyPrefix('foo) |> get |> $$[Int]
     def foo2 =
-      keyPrefix('foo2) |> delete |> queryParam[Option[Int]]('arg) |> $$[Int]
+      keyPrefix('foo2) |> get |> queryParam[Option[Int]]('arg) |> $$[Int]
   }
 
   def route: F[Response] = MkService[F](DummyApi.api)(S)
