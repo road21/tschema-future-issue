@@ -1,6 +1,6 @@
 package tshemaIssue
 
-import cats.{Monad, ~>}
+import cats.{Eval, Monad, ~>}
 import cats.effect.ExitCode
 import com.twitter.finagle
 import com.twitter.finagle.http.{Request, Response}
@@ -17,6 +17,7 @@ import ru.tinkoff.tschema.utils.{SubString, functionK}
 import tofu.env.Env
 import ru.tinkoff.tschema.finagle.circeInstances._
 import cats.tagless.syntax.functorK._
+import tofu.Execute
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
@@ -30,17 +31,20 @@ trait SomeService[F[_]] {
 object SomeService {
   implicit val ec = ExecutionContext.global
   val someService: SomeService[Future] = new SomeService[Future] {
-    override def foo: Future[Int] = Future(Random.nextInt())
-    override def foo2(arg: Option[Int]): Future[Int] = Future(Random.nextInt())
+    override def foo: Future[Int] = Future {
+      println("running foo")
+      Random.nextInt()
+    }
+
+    override def foo2(arg: Option[Int]): Future[Int] = Future {
+      println("running foo2")
+      Random.nextInt()
+    }
   }
 
-  def create[F[_]](implicit F: FromFuture[F]): SomeService[F] =
-    someService.mapK(F.nat)
-}
-
-trait FromFuture[F[_]] {
-  def run[A](f: Future[A]): F[A] // with run(f: F[Future[F]]): F[A] everything is ok
-  def nat: Future ~> F = functionK.apply(run)
+  def create[F[_]](implicit F: Execute[F],
+                   ec: ExecutionContext): SomeService[F] =
+    someService.mapK(functionK.apply(x => F.deferFuture(x)))
 }
 
 class SomeModule[F[_]: Monad: RoutedPlus, G[_]: LiftHttp[F, *[_]]: Monad](
@@ -52,7 +56,7 @@ class SomeModule[F[_]: Monad: RoutedPlus, G[_]: LiftHttp[F, *[_]]: Monad](
 
     def foo = keyPrefix('foo) |> get |> $$[Int]
     def foo2 =
-      keyPrefix('foo2) |> get |> queryParam[Option[Int]]('arg) |> $$[Int]
+      keyPrefix('foo2) |> delete |> queryParam[Option[Int]]('arg) |> $$[Int]
   }
 
   def route: F[Response] = MkService[F](DummyApi.api)(S)
@@ -102,9 +106,5 @@ object Application extends TaskApp {
       }
       promise
     }
-  }
-
-  implicit val fromFutureInstance: FromFuture[Task] = new FromFuture[Task] {
-    override def run[A](f: Future[A]): Task[A] = Task.fromFuture(f)
   }
 }

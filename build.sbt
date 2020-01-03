@@ -13,5 +13,6 @@ libraryDependencies ++= List(
   "ru.tinkoff" %% "typed-schema-swagger" % "0.11.6",
   "ru.tinkoff" %% "typed-schema-finagle-env" % "0.11.6",
   "ru.tinkoff" %% "typed-schema-finagle-circe" % "0.11.6",
+  "ru.tinkoff" %% "tofu-core" % "0.6.0",
   "org.manatki" %% "derevo-cats-tagless" % "0.10.5"
 )
