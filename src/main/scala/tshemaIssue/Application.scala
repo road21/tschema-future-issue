@@ -44,6 +44,18 @@ object SomeService {
 
   def create[F[_]](implicit F: Execute[F]): SomeService[F] =
     someService.mapK(functionK.apply(x => F.deferFuture(x)))
+
+  /*
+  correct implemetation:
+
+  def create[F[_]](implicit F: Execute[F]): SomeService[F] = {
+    new SomeService[F] {
+      override def foo: F[Int] = F.deferFuture(someService.foo)
+      override def foo2(arg: Option[Int]): F[Int] =
+        F.deferFuture(someService.foo2(arg))
+    }
+  }
+ */
 }
 
 class SomeModule[F[_]: Monad: RoutedPlus, G[_]: LiftHttp[F, *[_]]: Monad](
